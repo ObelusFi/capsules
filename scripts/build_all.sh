@@ -25,9 +25,6 @@ for t in $TARGETS; do
   }
 done
 
-
-mkdir -p builds
-
 for path in target/*/*/capsules_compiler target/*/*/capsules_compiler.exe; do
     [ -f "$path" ] || continue
 
@@ -38,8 +35,7 @@ for path in target/*/*/capsules_compiler target/*/*/capsules_compiler.exe; do
       ext=".exe"
     fi
 
-    mkdir -p "$ROOT/builds/$triple/"
-    cp "$path" "$ROOT/builds/$triple/capsule$ext"
+    cp "$path" "$ROOT/builds/capsule_$triple$ext"
 done
 
 echo "Done."
