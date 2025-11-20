@@ -28,7 +28,8 @@ echo "Bumping version: $CURRENT_VERSION → $NEW_VERSION"
 
 # Update Cargo.toml
 tmp=$(mktemp)
-sed -E "s/version = \"[0-9]+\.[0-9]+\.[0-9]+\"/version = \"$NEW_VERSION\"/" "$ROOT/Cargo.toml" > "$tmp"
+sed -E "0,/version = \"[0-9]+\.[0-9]+\.[0-9]+\"/s/version = \"[0-9]+\.[0-9]+\.[0-9]+\"/version = \"$NEW_VERSION\"/" \
+  "$ROOT/Cargo.toml" > "$tmp"
 mv "$tmp" "$ROOT/Cargo.toml"
 
 TAG="v$NEW_VERSION"
