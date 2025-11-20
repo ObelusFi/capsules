@@ -13,7 +13,7 @@ lto = true
 codegen-units = 1
 
 [workspace.package]
-version = "0.1.0"
+version = "0.0.0"
 license = "MIT"
 edition = "2024"
 repository = "https://github.com/ObelusFi/capsules"
@@ -21,7 +21,7 @@ repository = "https://github.com/ObelusFi/capsules"
 [workspace.dependencies]
 aes-gcm = "0.10.3"
 atty = "0.2.14"
-clap = { version = "4.5.51", features = ["derive"] }
+clap = { version = "0.0.0", features = ["derive"] }
 pbkdf2 = "0.12.2"
 rand = "0.9.2"
 rpassword = "7.4.0"
@@ -37,5 +37,5 @@ sysinfo = "0.37.2"
 tabled = "0.20.0"
 bytesize = "2.2.0"
 humanize-duration = "0.0.7"
-schemars = {version = "1.1.0", features=["derive", "semver1"]}
+schemars = {version = "0.0.0", features=["derive", "semver1"]}
 semver = {version="1.0.27", features=["serde"]}
