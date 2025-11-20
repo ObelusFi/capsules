@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -31,7 +32,10 @@ else
   LOG_CMD=(git log --pretty=%B)
 fi
 
-MAPFILE -t COMMITS < <("${LOG_CMD[@]}")
+COMMITS=()
+while IFS= read -r line; do
+  COMMITS+=("$line")
+done < <("${LOG_CMD[@]}")
 
 for msg in "${COMMITS[@]}"; do
   first_line=$(printf "%s\n" "$msg" | head -n1)
