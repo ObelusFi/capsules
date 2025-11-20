@@ -15,7 +15,7 @@ if [ "$CURRENT_BRANCH" != "master" ]; then
 fi
 
 # Compute next semantic version from commits
-NEW_VERSION="$("$ROOT/scripts/next-version.sh")"
+NEW_VERSION="$("$ROOT/scripts/next_version.sh")"
 
 CURRENT_VERSION=$(grep -m1 '^version = ' "$ROOT/Cargo.toml" | sed -E 's/version = "([^"]+)"/\1/')
 
