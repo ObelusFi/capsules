@@ -1,0 +1,19 @@
+[package]
+name = "capsules_compiler"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+clap.workspace = true
+uuid.workspace = true
+zip.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+postcard.workspace = true
+capsules_lib = {path="../capsules_lib"}
+semver.workspace = true
+
+[build-dependencies]
+capsules_lib = {path="../capsules_lib"}

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$BRANCH" != "master" ]; then
+  exit 0
+fi
+
+scripts/semantic_release.sh

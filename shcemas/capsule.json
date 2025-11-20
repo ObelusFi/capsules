@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Capsule",
+  "type": "object",
+  "properties": {
+    "env": {
+      "description": "Global environment varriables",
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "files": {
+      "description": "Global files\nsource -> target",
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "processes": {
+      "description": "Processes to spawn",
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "$ref": "#/$defs/Process"
+      }
+    },
+    "version": {
+      "description": "The version of the capsule",
+      "$ref": "#/$defs/SemVer"
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "$defs": {
+    "Process": {
+      "type": "object",
+      "properties": {
+        "args": {
+          "description": "Command arguments",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "cmd": {
+          "description": "Command to execute",
+          "type": "string"
+        },
+        "cwd": {
+          "description": "Process working directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "description": "Env vars",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "files": {
+          "description": "Files to embed\nsource -> target",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "restart_delay": {
+          "description": "Time in ms to wait before restarting the process",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "restart_policy": {
+          "description": "Restart policy",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RestartPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "cmd"
+      ]
+    },
+    "RestartPolicy": {
+      "type": "string",
+      "enum": [
+        "never",
+        "always",
+        "on_failure"
+      ]
+    },
+    "SemVer": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    }
+  }
+}

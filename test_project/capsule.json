@@ -1,0 +1,13 @@
+{
+  "$schema": "../shcemas/capsule.json",
+  "version": "1.0.0",
+  "processes": {
+    "node": {
+      "cmd": "bun",
+      "args": ["run", "index.js"],
+      "files": {
+        "index.js": "index.js"
+      }
+    }
+  }
+}

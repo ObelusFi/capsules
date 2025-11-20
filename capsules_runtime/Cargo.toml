@@ -1,0 +1,15 @@
+[package]
+name = "capsules_runtime"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+atty.workspace = true
+clap.workspace = true
+postcard.workspace = true
+rpassword.workspace = true
+zip.workspace = true
+sysinfo.workspace = true
+capsules_lib = {path="../capsules_lib"}
