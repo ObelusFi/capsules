@@ -37,7 +37,7 @@ while IFS= read -r line; do
   COMMITS+=("$line")
 done < <("${LOG_CMD[@]}")
 
-for msg in "${COMMITS[@]}"; do
+for msg in "${COMMITS[@]+"${COMMITS[@]}"}"; do
   first_line=$(printf "%s\n" "$msg" | head -n1)
 
   # BREAKING CHANGE in body?
