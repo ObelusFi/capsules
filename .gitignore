@@ -4,3 +4,4 @@ test_project/.capsule
 test_project/node
 builds/
 .cargo/
+.DS_Store
