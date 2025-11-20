@@ -80,6 +80,22 @@ whole workload with one command—no installers, no extra tooling.
    ```
    Everything (files, env vars, restart policies) is already inside the binary.
 
+## Download Latest Release
+
+Grab the latest prebuilt Capsule binary:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/scripts/install_capsule_linux.sh | bash
+```
+
+```bash
+curl -sSL https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/scripts/install_capsule_mac.sh | bash
+```
+
+```bash
+iwr https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/scripts/install_capsule_windows.sh | iex
+```
+
 ## Capsule CLI Cheatsheet
 
 ```
