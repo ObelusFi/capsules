@@ -4,7 +4,7 @@
   "type": "object",
   "properties": {
     "env": {
-      "description": "Global environment varriables",
+      "description": "Global environment variables",
       "type": [
         "object",
         "null"

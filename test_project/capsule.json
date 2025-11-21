@@ -1,5 +1,5 @@
 {
-  "$schema": "../shcemas/capsule.json",
+  "$schema": "../schemas/capsule.json",
   "version": "1.0.0",
   "processes": {
     "node": {

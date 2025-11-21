@@ -1,7 +1,7 @@
 use atty::Stream;
 use capsules_lib::{
     Capsule, CliMessage, Env, Error, Exitable, ExitableError, FOOTER_SIZE, ListResp,
-    MAGIC_NUMBER_ENCRIPTED, MAGIC_NUMBER_PLAIN, Process, RestartPolicy, RunningProcess, SetError,
+    MAGIC_NUMBER_ENCRYPTED, MAGIC_NUMBER_PLAIN, Process, RestartPolicy, RunningProcess, SetError,
     Status, SupervisorResp, Table, decrypt,
 };
 use clap::{Parser, Subcommand};
@@ -28,7 +28,7 @@ fn get_data() -> Result<Vec<u8>, Error> {
         .map_err(|_| Error::NoData)?;
     let magic = &footer_bytes[8..16];
 
-    if magic != MAGIC_NUMBER_PLAIN && magic != MAGIC_NUMBER_ENCRIPTED {
+    if magic != MAGIC_NUMBER_PLAIN && magic != MAGIC_NUMBER_ENCRYPTED {
         return Err(Error::NoData);
     }
 
@@ -154,7 +154,7 @@ fn get_port() -> Result<u16, Error> {
         .map_err(|_| Error::SupervisorCantBeFound)
 }
 
-fn deamon_run() -> Result<(), Error> {
+fn daemon_run() -> Result<(), Error> {
     let capsule: Capsule = from_bytes(&get_data()?)
         .map_err(|_| Error::InvalidDataFormat)
         .and_then(extract_files)?;
@@ -315,7 +315,7 @@ fn deamon_run() -> Result<(), Error> {
                             .set_error(Error::InternalError)
                             .log();
                     }
-                    CliMessage::TareDown => {
+                    CliMessage::TearDown => {
                         for (_, proc) in table.iter_mut() {
                             proc.child.kill().ok();
                             proc.child.try_wait().ok();
@@ -336,7 +336,7 @@ fn deamon_run() -> Result<(), Error> {
                             .set_error(Error::InternalError)
                             .log();
                     }
-                    CliMessage::KillDeamon => {
+                    CliMessage::KillDaemon => {
                         to_allocvec(&SupervisorResp::Ok)
                             .map(|resp| socket.send_to(&resp, client_addr))
                             .set_error(Error::InternalError)
@@ -406,8 +406,8 @@ fn deamon_run() -> Result<(), Error> {
     }
 }
 
-fn cli_deamon_start() -> Result<(), Error> {
-    if cli_deamon_status().is_ok() {
+fn cli_daemon_start() -> Result<(), Error> {
+    if cli_daemon_status().is_ok() {
         return Ok(());
     }
     let exe_path = env::current_exe().set_error(Error::InternalError)?;
@@ -420,11 +420,11 @@ fn cli_deamon_start() -> Result<(), Error> {
         .set_error(Error::InternalError)?;
     let magic = &footer_bytes[8..16];
     // could be an attack vector
-    // if current_exe is swaped after the password read
+    // if current_exe is swapped after the password read
     // maybe include a checksum or something
     let mut cmd = Command::new(exe_path);
     cmd.arg("supervisor");
-    if magic == MAGIC_NUMBER_ENCRIPTED {
+    if magic == MAGIC_NUMBER_ENCRYPTED {
         cmd.env("__SUPERVISOR_PASSWORD__", read_password()?);
     }
     cmd.stdout(Stdio::null())
@@ -495,56 +495,56 @@ fn cli_proc_kill_all() -> Result<(), Error> {
     return Ok(());
 }
 
-fn cli_deamon_tare_down() -> Result<(), Error> {
-    send_cli_cmd(CliMessage::TareDown, |_| Ok(()))?;
+fn cli_daemon_tear_down() -> Result<(), Error> {
+    send_cli_cmd(CliMessage::TearDown, |_| Ok(()))?;
     println!("Ok!");
     return Ok(());
 }
 
-fn cli_deamon_kill() -> Result<(), Error> {
-    send_cli_cmd(CliMessage::TareDown, |_| Ok(()))?;
+fn cli_daemon_kill() -> Result<(), Error> {
+    send_cli_cmd(CliMessage::TearDown, |_| Ok(()))?;
     println!("Ok!");
     return Ok(());
 }
 
-fn cli_deamon_status() -> Result<(), Error> {
+fn cli_daemon_status() -> Result<(), Error> {
     send_cli_cmd(CliMessage::Status, |resp| match resp {
         SupervisorResp::Version(v) => {
             println!("Status.        : Ok");
             println!("Capsule version: {}", v);
-            println!("Deamon  version: {}", env!("CARGO_PKG_VERSION"));
+            println!("Daemon  version: {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
         _ => Err(Error::InternalError),
     })
 }
 
-fn cli_deamon_version() -> Result<(), Error> {
+fn cli_daemon_version() -> Result<(), Error> {
     match send_cli_cmd(CliMessage::Status, |resp| match resp {
         SupervisorResp::Version(v) => {
             println!("Capsule version: {}", v);
-            println!("Deamon version: {}", env!("CARGO_PKG_VERSION"));
+            println!("Daemon version: {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
         _ => Err(Error::InternalError),
     }) {
         Ok(v) => Ok(v),
         Err(_) => {
-            println!("Deamon version: {}", env!("CARGO_PKG_VERSION"));
+            println!("Daemon version: {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
     }
 }
 
 #[derive(Debug, Subcommand)]
-enum Deamon {
+enum Daemon {
     /// Starts the supervisor
     Start,
-    /// Warning! this will remove all files, and stop all procesess and the supervisor
-    TareDown,
+    /// Warning! this will remove all files, and stop all processes and the supervisor
+    TearDown,
     /// Returns the status
     Status,
-    /// Kills the suppervisor, use proc kill to kill a specific process
+    /// Kills the supervisor, use proc kill to kill a specific process
     Kill,
 }
 
@@ -554,7 +554,7 @@ enum Proc {
     Kill { name: String },
     /// Restart a process
     Restart { name: String },
-    /// Kills all a processes keeps the suppervisor running
+    /// Kills all a processes keeps the supervisor running
     KillAll,
     /// Lists data about all the processes
     List,
@@ -564,7 +564,7 @@ enum Proc {
 #[command(disable_version_flag = true, about, long_about = None)]
 enum Args {
     #[command(subcommand)]
-    Deamon(Deamon),
+    Daemon(Daemon),
 
     #[command(subcommand)]
     Proc(Proc),
@@ -580,11 +580,11 @@ fn main() {
     let args = Args::parse();
 
     match args {
-        Args::Deamon(demon) => match demon {
-            Deamon::Start => cli_deamon_start(),
-            Deamon::TareDown => cli_deamon_tare_down(),
-            Deamon::Kill => cli_deamon_kill(),
-            Deamon::Status => cli_deamon_status(),
+        Args::Daemon(daemon) => match daemon {
+            Daemon::Start => cli_daemon_start(),
+            Daemon::TearDown => cli_daemon_tear_down(),
+            Daemon::Kill => cli_daemon_kill(),
+            Daemon::Status => cli_daemon_status(),
         },
         Args::Proc(proc) => match proc {
             Proc::Kill { name } => cli_proc_kill(name),
@@ -592,8 +592,8 @@ fn main() {
             Proc::KillAll => cli_proc_kill_all(),
             Proc::List => cli_proc_list(),
         },
-        Args::Supervisor => deamon_run(),
-        Args::Version => cli_deamon_version(),
+        Args::Supervisor => daemon_run(),
+        Args::Version => cli_daemon_version(),
     }
     .exit();
 }
