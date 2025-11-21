@@ -1,6 +1,6 @@
 use atty::Stream;
 use capsules_lib::{
-    Capsule, CliMessage, Env, Error, Exitable, ExitableError, FOOTER_SIZE, ListResp,
+    ASCII_ART, Capsule, CliMessage, Env, Error, Exitable, ExitableError, FOOTER_SIZE, ListResp,
     MAGIC_NUMBER_ENCRYPTED, MAGIC_NUMBER_PLAIN, Process, RestartPolicy, RunningProcess, SetError,
     Status, SupervisorResp, Table, decrypt,
 };
@@ -561,7 +561,7 @@ enum Proc {
 }
 
 #[derive(Parser, Debug)]
-#[command(disable_version_flag = true, about, long_about = None)]
+#[command(disable_version_flag = true, about, long_about = None, before_help=ASCII_ART)]
 enum Args {
     #[command(subcommand)]
     Daemon(Daemon),

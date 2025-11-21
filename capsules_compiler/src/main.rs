@@ -3,7 +3,8 @@ mod runtime_binaries {
 }
 
 use capsules_lib::{
-    Capsule, Error, MAGIC_NUMBER_ENCRYPTED, MAGIC_NUMBER_PLAIN, RUNTIME_TARGETS, SetError, encrypt,
+    ASCII_ART, Capsule, Error, MAGIC_NUMBER_ENCRYPTED, MAGIC_NUMBER_PLAIN, RUNTIME_TARGETS,
+    SetError, encrypt,
 };
 use clap::{Parser, builder::PossibleValuesParser};
 use runtime_binaries::RUNTIME_BINARIES;
@@ -23,7 +24,7 @@ fn target_parser() -> PossibleValuesParser {
 
 /// The Capsules compiler
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, before_help=ASCII_ART)]
 struct Args {
     /// The capsule input file
     #[arg(short, long)]
