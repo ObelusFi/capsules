@@ -15,6 +15,8 @@ use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
+pub static ASCII_ART: &str = include_str!("./ascii_art.txt");
+
 pub const RUNTIME_TARGETS: &[(&str, &str)] = &[
     // WINDOWS
     ("x86_64-pc-windows-gnu", ".exe"),
@@ -31,7 +33,7 @@ pub const RUNTIME_TARGETS: &[(&str, &str)] = &[
 ];
 
 pub const MAGIC_NUMBER_PLAIN: &[u8; 8] = b"SETENV_P";
-pub const MAGIC_NUMBER_ENCRIPTED: &[u8; 8] = b"SETENV_E";
+pub const MAGIC_NUMBER_ENCRYPTED: &[u8; 8] = b"SETENV_E";
 pub const FOOTER_SIZE: i64 = 16;
 
 fn derive_key(password: &str, salt: &[u8]) -> [u8; 32] {
@@ -83,7 +85,7 @@ pub type Env = HashMap<String, String>;
 pub struct Capsule {
     /// The version of the capsule
     pub version: Version,
-    /// Global environment varriables
+    /// Global environment variables
     pub env: Option<Env>,
     #[cfg_attr(test, schemars(skip))]
     pub fs: Option<Vec<u8>>,
@@ -159,9 +161,10 @@ pub enum CliMessage {
     Kill { name: String },
     Restart { name: String },
     List,
-    Stop,
+    TearDown,
     KillAll,
     Status,
+    KillDaemon,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -187,9 +190,9 @@ pub struct ListResp {
 pub enum Error {
     #[error("Process {0:?} not found")]
     ProcessNotFound(String),
-    #[error("Supervisor cant be found")]
+    #[error("Supervisor can't be found")]
     SupervisorCantBeFound,
-    #[error("Could not start Udp server")]
+    #[error("Could not start UDP server")]
     CouldNotStartUdpServer,
     #[error("No data provided")]
     NoData,
@@ -403,7 +406,7 @@ mod test {
     use std::env;
     use std::fs;
     use std::path::PathBuf;
-    const SCHEMAS_FOLDER: &str = "shcemas";
+    const SCHEMAS_FOLDER: &str = "schemas";
     const SCHEMA_NAME: &str = "capsule.json";
 
     #[test]

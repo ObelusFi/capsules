@@ -3,7 +3,7 @@ mod runtime_binaries {
 }
 
 use capsules_lib::{
-    Capsule, Error, MAGIC_NUMBER_ENCRIPTED, MAGIC_NUMBER_PLAIN, RUNTIME_TARGETS, SetError, encrypt,
+    Capsule, Error, MAGIC_NUMBER_ENCRYPTED, MAGIC_NUMBER_PLAIN, RUNTIME_TARGETS, SetError, encrypt,
 };
 use clap::{Parser, builder::PossibleValuesParser};
 use runtime_binaries::RUNTIME_BINARIES;
@@ -21,7 +21,7 @@ fn target_parser() -> PossibleValuesParser {
     PossibleValuesParser::new(RUNTIME_BINARIES.iter().map(|(k, _)| *k))
 }
 
-/// The Capsules's compiler
+/// The Capsules compiler
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -83,7 +83,7 @@ fn run() -> Result<(), Error> {
             encrypt(&password, &input_bytes).set_error(Error::CouldNotEncryptFile)?;
         salt.append(&mut nonce_bytes);
         salt.append(&mut ciphertext);
-        (salt, MAGIC_NUMBER_ENCRIPTED)
+        (salt, MAGIC_NUMBER_ENCRYPTED)
     } else {
         (input_bytes, MAGIC_NUMBER_PLAIN)
     };

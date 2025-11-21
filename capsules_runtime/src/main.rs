@@ -1,7 +1,7 @@
 use atty::Stream;
 use capsules_lib::{
     Capsule, CliMessage, Env, Error, Exitable, ExitableError, FOOTER_SIZE, ListResp,
-    MAGIC_NUMBER_ENCRIPTED, MAGIC_NUMBER_PLAIN, Process, RestartPolicy, RunningProcess, SetError,
+    MAGIC_NUMBER_ENCRYPTED, MAGIC_NUMBER_PLAIN, Process, RestartPolicy, RunningProcess, SetError,
     Status, SupervisorResp, Table, decrypt,
 };
 use clap::{Parser, Subcommand};
@@ -28,7 +28,7 @@ fn get_data() -> Result<Vec<u8>, Error> {
         .map_err(|_| Error::NoData)?;
     let magic = &footer_bytes[8..16];
 
-    if magic != MAGIC_NUMBER_PLAIN && magic != MAGIC_NUMBER_ENCRIPTED {
+    if magic != MAGIC_NUMBER_PLAIN && magic != MAGIC_NUMBER_ENCRYPTED {
         return Err(Error::NoData);
     }
 
@@ -70,12 +70,12 @@ fn extract_files(mut c: Capsule) -> Result<Capsule, Error> {
         None => return Ok(c),
     };
 
-    let root = env::current_dir().set_error(Error::InternalError)?;
+    let root = get_capsule_cwd()?;
     let cursor = Cursor::new(fs_bytes);
     let mut zip = ZipArchive::new(cursor).map_err(|_| Error::InternalError)?;
 
     if let Some(files) = &c.files {
-        extract_file_map(&mut zip, Path::new("."), files)?;
+        extract_file_map(&mut zip, &root, files)?;
     }
     if let Some(processes) = &c.processes {
         for (name, process) in processes {
@@ -90,6 +90,19 @@ fn extract_files(mut c: Capsule) -> Result<Capsule, Error> {
     }
     c.fs.take();
     Ok(c)
+}
+
+fn clear_files(c: &Capsule) -> Result<(), Error> {
+    let root = get_capsule_cwd()?;
+    fs::remove_dir_all(&root).set_error(Error::InternalError)?;
+    if let Some(processes) = &c.processes {
+        for (name, process) in processes {
+            let cwd = process.cwd.as_ref().unwrap_or(name);
+            let path = root.join(cwd);
+            fs::remove_dir_all(path).set_error(Error::InternalError)?;
+        }
+    }
+    Ok(())
 }
 
 fn extract_file_map(
@@ -117,6 +130,14 @@ fn extract_file_map(
     Ok(())
 }
 
+fn get_capsule_cwd() -> Result<PathBuf, Error> {
+    Ok(env::current_exe()
+        .map_err(|_| Error::InternalError)?
+        .parent()
+        .ok_or(Error::InternalError)?
+        .join(".capsule"))
+}
+
 fn get_port_file_path() -> Result<PathBuf, Error> {
     Ok(env::current_exe()
         .map_err(|_| Error::InternalError)?
@@ -133,7 +154,7 @@ fn get_port() -> Result<u16, Error> {
         .map_err(|_| Error::SupervisorCantBeFound)
 }
 
-fn deamon_run() -> Result<(), Error> {
+fn daemon_run() -> Result<(), Error> {
     let capsule: Capsule = from_bytes(&get_data()?)
         .map_err(|_| Error::InvalidDataFormat)
         .and_then(extract_files)?;
@@ -179,7 +200,7 @@ fn deamon_run() -> Result<(), Error> {
             .set_error(Error::FailedToSpawnProcess(name.to_string()))
     }
 
-    if let Some(processes) = capsule.processes {
+    if let Some(processes) = &capsule.processes {
         for (name, proc) in processes {
             let Ok(child) = start_child(&name, &proc, capsule.env.as_ref()) else {
                 continue;
@@ -187,7 +208,7 @@ fn deamon_run() -> Result<(), Error> {
             let entry = RunningProcess {
                 name: name.clone(),
                 status: Status::Running(child.id()),
-                config: proc,
+                config: proc.clone(),
                 child,
                 started: Instant::now(),
                 force_restart: false,
@@ -294,12 +315,16 @@ fn deamon_run() -> Result<(), Error> {
                             .set_error(Error::InternalError)
                             .log();
                     }
-                    CliMessage::Stop => {
+                    CliMessage::TearDown => {
                         for (_, proc) in table.iter_mut() {
                             proc.child.kill().ok();
-                            proc.child.wait().ok();
+                            proc.child.try_wait().ok();
                         }
-                        to_allocvec(&SupervisorResp::Ok)
+                        let resp = match clear_files(&capsule) {
+                            Ok(_) => SupervisorResp::Ok,
+                            Err(_) => SupervisorResp::Error(Error::InternalError), // todo return proper error
+                        };
+                        to_allocvec(&resp)
                             .map(|resp| socket.send_to(&resp, client_addr))
                             .set_error(Error::InternalError)
                             .log();
@@ -310,6 +335,13 @@ fn deamon_run() -> Result<(), Error> {
                             .map(|resp| socket.send_to(&resp, client_addr))
                             .set_error(Error::InternalError)
                             .log();
+                    }
+                    CliMessage::KillDaemon => {
+                        to_allocvec(&SupervisorResp::Ok)
+                            .map(|resp| socket.send_to(&resp, client_addr))
+                            .set_error(Error::InternalError)
+                            .log();
+                        return Ok(());
                     }
                 }
             }
@@ -374,8 +406,8 @@ fn deamon_run() -> Result<(), Error> {
     }
 }
 
-fn cli_deamon_start() -> Result<(), Error> {
-    if cli_deamon_status().is_ok() {
+fn cli_daemon_start() -> Result<(), Error> {
+    if cli_daemon_status().is_ok() {
         return Ok(());
     }
     let exe_path = env::current_exe().set_error(Error::InternalError)?;
@@ -388,11 +420,11 @@ fn cli_deamon_start() -> Result<(), Error> {
         .set_error(Error::InternalError)?;
     let magic = &footer_bytes[8..16];
     // could be an attack vector
-    // if current_exe is swaped after the password read
+    // if current_exe is swapped after the password read
     // maybe include a checksum or something
     let mut cmd = Command::new(exe_path);
     cmd.arg("supervisor");
-    if magic == MAGIC_NUMBER_ENCRIPTED {
+    if magic == MAGIC_NUMBER_ENCRYPTED {
         cmd.env("__SUPERVISOR_PASSWORD__", read_password()?);
     }
     cmd.stdout(Stdio::null())
@@ -463,54 +495,68 @@ fn cli_proc_kill_all() -> Result<(), Error> {
     return Ok(());
 }
 
-fn cli_deamon_stop() -> Result<(), Error> {
-    send_cli_cmd(CliMessage::Stop, |_| Ok(()))?;
+fn cli_daemon_tear_down() -> Result<(), Error> {
+    send_cli_cmd(CliMessage::TearDown, |_| Ok(()))?;
     println!("Ok!");
     return Ok(());
 }
 
-fn cli_deamon_status() -> Result<(), Error> {
+fn cli_daemon_kill() -> Result<(), Error> {
+    send_cli_cmd(CliMessage::TearDown, |_| Ok(()))?;
+    println!("Ok!");
+    return Ok(());
+}
+
+fn cli_daemon_status() -> Result<(), Error> {
     send_cli_cmd(CliMessage::Status, |resp| match resp {
         SupervisorResp::Version(v) => {
             println!("Status.        : Ok");
             println!("Capsule version: {}", v);
-            println!("Deamon  version: {}", env!("CARGO_PKG_VERSION"));
+            println!("Daemon  version: {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
         _ => Err(Error::InternalError),
     })
 }
 
-fn cli_deamon_version() -> Result<(), Error> {
+fn cli_daemon_version() -> Result<(), Error> {
     match send_cli_cmd(CliMessage::Status, |resp| match resp {
         SupervisorResp::Version(v) => {
             println!("Capsule version: {}", v);
-            println!("Deamon version: {}", env!("CARGO_PKG_VERSION"));
+            println!("Daemon version: {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
         _ => Err(Error::InternalError),
     }) {
         Ok(v) => Ok(v),
         Err(_) => {
-            println!("Deamon version: {}", env!("CARGO_PKG_VERSION"));
+            println!("Daemon version: {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
     }
 }
 
 #[derive(Debug, Subcommand)]
-enum Deamon {
+enum Daemon {
+    /// Starts the supervisor
     Start,
-    Stop,
-    Clean,
+    /// Warning! this will remove all files, and stop all processes and the supervisor
+    TearDown,
+    /// Returns the status
     Status,
+    /// Kills the supervisor, use proc kill to kill a specific process
+    Kill,
 }
 
 #[derive(Debug, Subcommand)]
 enum Proc {
+    /// Kills a process
     Kill { name: String },
+    /// Restart a process
     Restart { name: String },
+    /// Kills all a processes keeps the supervisor running
     KillAll,
+    /// Lists data about all the processes
     List,
 }
 
@@ -518,7 +564,7 @@ enum Proc {
 #[command(disable_version_flag = true, about, long_about = None)]
 enum Args {
     #[command(subcommand)]
-    Deamon(Deamon),
+    Daemon(Daemon),
 
     #[command(subcommand)]
     Proc(Proc),
@@ -534,11 +580,11 @@ fn main() {
     let args = Args::parse();
 
     match args {
-        Args::Deamon(demon) => match demon {
-            Deamon::Start => cli_deamon_start(),
-            Deamon::Stop => cli_deamon_stop(),
-            Deamon::Status => cli_deamon_status(),
-            Deamon::Clean => todo!(),
+        Args::Daemon(daemon) => match daemon {
+            Daemon::Start => cli_daemon_start(),
+            Daemon::TearDown => cli_daemon_tear_down(),
+            Daemon::Kill => cli_daemon_kill(),
+            Daemon::Status => cli_daemon_status(),
         },
         Args::Proc(proc) => match proc {
             Proc::Kill { name } => cli_proc_kill(name),
@@ -546,8 +592,8 @@ fn main() {
             Proc::KillAll => cli_proc_kill_all(),
             Proc::List => cli_proc_list(),
         },
-        Args::Supervisor => deamon_run(),
-        Args::Version => cli_deamon_version(),
+        Args::Supervisor => daemon_run(),
+        Args::Version => cli_daemon_version(),
     }
     .exit();
 }

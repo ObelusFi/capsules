@@ -13,10 +13,10 @@ whole workload with one command—no installers, no extra tooling.
 
 ## Quick Start
 
-1. **Describe your workload** using JSON or TOML (see `shcemas/capsule.json`).
+1. **Describe your workload** using JSON or TOML (see `schemas/capsule.json`).
    ```jsonc
    {
-     "version": "1.0.0", // surfaced via `capsule deamon status`
+     "version": "1.0.0", // surfaced via `capsule daemon status`
      "env": {
        // global env vars applied to every process
        "NODE_ENV": "production",
@@ -69,7 +69,7 @@ whole workload with one command—no installers, no extra tooling.
    executable you distribute.
 3. **Run the capsule** on the target machine:
    ```bash
-   ./capsule-macos deamon start
+   ./capsule-macos daemon start
    # prompts for the password if you compiled with -p
    # later on, inspect the workload
    ./capsule-macos proc list
@@ -99,9 +99,9 @@ iwr https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/script
 ## Capsule CLI Cheatsheet
 
 ```
-./capsule deamon start        # boot supervisor & bundled processes
-./capsule deamon status       # capsule + runtime versions
-./capsule deamon stop         # tear everything down
+./capsule daemon start        # boot supervisor & bundled processes
+./capsule daemon status       # capsule + runtime versions
+./capsule daemon stop         # tear everything down
 ./capsule proc list           # CPU, memory, IO, uptime, restarts
 ./capsule proc kill <name>    # terminate a named process
 ./capsule proc restart <name> # restart a process
@@ -110,7 +110,7 @@ iwr https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/script
 ```
 
 All commands talk to the supervisor over localhost UDP using the port stored in
-`.capsule/capsule.port`. `deamon clean` exists but is not implemented yet.
+`.capsule/capsule.port`. `daemon clean` exists but is not implemented yet.
 
 ## Compiling from Source
 
@@ -134,7 +134,7 @@ Working on Capsules itself or cutting custom builds?
 - `capsules_runtime/` – supervisor CLI bundled inside every capsule.
 - `capsules_compiler/` – the CLI you run to create capsule binaries.
 - `scripts/` – helper automation (cross-compilation, release helpers, git hooks).
-- `shcemas/` – JSON Schema describing the capsule format.
+- `schemas/` – JSON Schema describing the capsule format.
 - `test_project/` – sample capsule definition and assets.
 
 ## Development Notes
