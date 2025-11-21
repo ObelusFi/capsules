@@ -44,47 +44,55 @@ git add .
 git commit -m "chore(release): $TAG"
 git tag "$TAG"
 
-# Generate changelog section
 echo "📝 Updating CHANGELOG.md..."
 CHANGELOG="$ROOT/CHANGELOG.md"
+TEMP="$ROOT/CHANGELOG.tmp"
 
 if [ ! -f "$CHANGELOG" ]; then
   echo "# Changelog" > "$CHANGELOG"
   echo "" >> "$CHANGELOG"
 fi
 
-echo "## $TAG ($(date +%Y-%m-%d))" >> "$CHANGELOG"
-echo "" >> "$CHANGELOG"
-
 # Collect commits since last tag
 PREV_TAG=$(git -C "$ROOT" describe --tags --abbrev=0 "$TAG^" 2>/dev/null || echo "")
 
-if [ -z "$PREV_TAG" ]; then
-  echo "First release. Listing all commits..."
-  git -C "$ROOT" log --pretty=format:"- %s" >> "$CHANGELOG"
-else
-  echo "Changes since $PREV_TAG..."
-  git -C "$ROOT" log "$PREV_TAG"..HEAD --pretty=format:"- %s" >> "$CHANGELOG"
-fi
+# Write new section into TEMP
+{
+  echo "## $TAG ($(date +%Y-%m-%d))"
+  echo ""
 
-echo "" >> "$CHANGELOG"
+  if [ -z "$PREV_TAG" ]; then
+    echo "First release. Listing all commits..."
+    git -C "$ROOT" log --pretty=format:"- %s"
+  else
+    echo "Changes since $PREV_TAG..."
+    git -C "$ROOT" log "$PREV_TAG"..HEAD --pretty=format:"- %s"
+  fi
+
+  echo ""
+} > "$TEMP"
+
+echo "Pushing commit and tags..."
+git -C "$ROOT" push --tags
+
+echo "Creating GitHub release $TAG"
+# IMPORTANT: use TEMP, not CHANGELOG
+gh release create "$TAG" --notes-file "$TEMP"
+
+# Now update CHANGELOG by prepending TEMP
+cat "$CHANGELOG" >> "$TEMP"
+mv "$TEMP" "$CHANGELOG"
 
 git -C "$ROOT" add CHANGELOG.md
 git -C "$ROOT" commit --amend --no-edit
+git -C "$ROOT" push --force-with-lease
+
 
 echo "Building runtimes and compiler..."
 "$ROOT/scripts/build_all.sh"
 
-echo "Pushing commit and tags..."
-git -C "$ROOT" push
-git -C "$ROOT" push --tags
-
-echo "Creating GitHub release $TAG"
-gh release create "$TAG" --notes-file "$CHANGELOG"
 
 echo "Uploading artifacts..."
 gh release upload "$TAG" "$ROOT/builds/"* --clobber
-
-
 
 echo "🎉 Semantic release $TAG done."
