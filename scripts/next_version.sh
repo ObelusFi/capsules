@@ -11,8 +11,8 @@ if [ -z "${CURRENT_VERSION:-}" ]; then
   exit 0
 fi
 
-# Get last tag (if any)
-LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+# Get last tag correctly (latest SemVer tag)
+LAST_TAG=$(git tag --sort=-version:refname | head -n 1 || echo "")
 
 if [ -n "$LAST_TAG" ]; then
   RANGE="${LAST_TAG}..HEAD"
@@ -52,7 +52,7 @@ for msg in "${COMMITS[@]+"${COMMITS[@]}"}"; do
     break
   fi
 
-  # If we already need major, no need to downgrade
+  # If we already need major, no need to check lower
   if [ "$BUMP" = "major" ]; then
     continue
   fi
@@ -75,7 +75,6 @@ for msg in "${COMMITS[@]+"${COMMITS[@]}"}"; do
 done
 
 if [ "$BUMP" = "none" ]; then
-  # No semver-worthy changes – just keep current
   echo "$CURRENT_VERSION"
   exit 0
 fi
