@@ -70,7 +70,7 @@ fn extract_files(mut c: Capsule) -> Result<Capsule, Error> {
         None => return Ok(c),
     };
 
-    let root = get_capsule_cwd()?;
+    let root: PathBuf = get_capsule_cwd()?;
     let cursor = Cursor::new(fs_bytes);
     let mut zip = ZipArchive::new(cursor).map_err(|_| Error::InternalError)?;
 
@@ -92,16 +92,9 @@ fn extract_files(mut c: Capsule) -> Result<Capsule, Error> {
     Ok(c)
 }
 
-fn clear_files(c: &Capsule) -> Result<(), Error> {
+fn clear_files() -> Result<(), Error> {
     let root = get_capsule_cwd()?;
     fs::remove_dir_all(&root).set_error(Error::InternalError)?;
-    if let Some(processes) = &c.processes {
-        for (name, process) in processes {
-            let cwd = process.cwd.as_ref().unwrap_or(name);
-            let path = root.join(cwd);
-            fs::remove_dir_all(path).set_error(Error::InternalError)?;
-        }
-    }
     Ok(())
 }
 
@@ -182,7 +175,7 @@ fn daemon_run() -> Result<(), Error> {
         proc: &Process,
         parent_env: Option<&Env>,
     ) -> Result<Child, Error> {
-        let cwd = proc.cwd.as_ref().unwrap_or(name);
+        let cwd = get_capsule_cwd()?.join(proc.cwd.as_ref().unwrap_or(name));
         let mut child = Command::new(&proc.cmd);
         child
             .args(proc.args.clone().unwrap_or_default())
@@ -320,7 +313,7 @@ fn daemon_run() -> Result<(), Error> {
                             proc.child.kill().ok();
                             proc.child.try_wait().ok();
                         }
-                        let resp = match clear_files(&capsule) {
+                        let resp = match clear_files() {
                             Ok(_) => SupervisorResp::Ok,
                             Err(_) => SupervisorResp::Error(Error::InternalError), // todo return proper error
                         };
@@ -502,7 +495,7 @@ fn cli_daemon_tear_down() -> Result<(), Error> {
 }
 
 fn cli_daemon_kill() -> Result<(), Error> {
-    send_cli_cmd(CliMessage::TearDown, |_| Ok(()))?;
+    send_cli_cmd(CliMessage::KillDaemon, |_| Ok(()))?;
     println!("Ok!");
     return Ok(());
 }
