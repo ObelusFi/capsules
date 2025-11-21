@@ -35,7 +35,11 @@ for path in target/*/*/capsules_compiler target/*/*/capsules_compiler.exe; do
       ext=".exe"
     fi
 
-    cp "$path" "$ROOT/builds/capsule_$triple$ext"
+    mkdir -p "$ROOT/builds/$triple/"
+    cp "$path" "$ROOT/builds/$triple/capsule$ext"
+    
+    zip -j "$ROOT/builds/$triple.zip" "$ROOT/builds/$triple/capsule$ext"
+    rm -rf "$ROOT/builds/$triple"
 done
 
 echo "Done."
