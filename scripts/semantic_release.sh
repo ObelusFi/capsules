@@ -37,6 +37,7 @@ awk -v new="$NEW_VERSION" '
     { print }
 ' "$ROOT/Cargo.toml" > "$tmp"
 TAG="v$NEW_VERSION"
+rm $tmp
 
 echo "Creating tag: $TAG"
 git add .
@@ -74,14 +75,16 @@ git -C "$ROOT" commit --amend --no-edit
 echo "Building runtimes and compiler..."
 "$ROOT/scripts/build_all.sh"
 
+echo "Pushing commit and tags..."
+git -C "$ROOT" push
+git -C "$ROOT" push --tags
+
 echo "Creating GitHub release $TAG"
 gh release create "$TAG" --notes-file "$CHANGELOG"
 
 echo "Uploading artifacts..."
 gh release upload "$TAG" "$ROOT/builds/"* --clobber
 
-echo "Pushing commit and tags..."
-git -C "$ROOT" push
-git -C "$ROOT" push --tags
+
 
 echo "🎉 Semantic release $TAG done."
