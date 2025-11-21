@@ -70,12 +70,12 @@ fn extract_files(mut c: Capsule) -> Result<Capsule, Error> {
         None => return Ok(c),
     };
 
-    let root = env::current_dir().set_error(Error::InternalError)?;
+    let root = get_capsule_cwd()?;
     let cursor = Cursor::new(fs_bytes);
     let mut zip = ZipArchive::new(cursor).map_err(|_| Error::InternalError)?;
 
     if let Some(files) = &c.files {
-        extract_file_map(&mut zip, Path::new("."), files)?;
+        extract_file_map(&mut zip, &root, files)?;
     }
     if let Some(processes) = &c.processes {
         for (name, process) in processes {
@@ -90,6 +90,19 @@ fn extract_files(mut c: Capsule) -> Result<Capsule, Error> {
     }
     c.fs.take();
     Ok(c)
+}
+
+fn clear_files(c: &Capsule) -> Result<(), Error> {
+    let root = get_capsule_cwd()?;
+    fs::remove_dir_all(&root).set_error(Error::InternalError)?;
+    if let Some(processes) = &c.processes {
+        for (name, process) in processes {
+            let cwd = process.cwd.as_ref().unwrap_or(name);
+            let path = root.join(cwd);
+            fs::remove_dir_all(path).set_error(Error::InternalError)?;
+        }
+    }
+    Ok(())
 }
 
 fn extract_file_map(
@@ -115,6 +128,14 @@ fn extract_file_map(
             .map_err(|_| Error::CouldNotWriteFile(out_path.display().to_string()))?;
     }
     Ok(())
+}
+
+fn get_capsule_cwd() -> Result<PathBuf, Error> {
+    Ok(env::current_exe()
+        .map_err(|_| Error::InternalError)?
+        .parent()
+        .ok_or(Error::InternalError)?
+        .join(".capsule"))
 }
 
 fn get_port_file_path() -> Result<PathBuf, Error> {
@@ -179,7 +200,7 @@ fn deamon_run() -> Result<(), Error> {
             .set_error(Error::FailedToSpawnProcess(name.to_string()))
     }
 
-    if let Some(processes) = capsule.processes {
+    if let Some(processes) = &capsule.processes {
         for (name, proc) in processes {
             let Ok(child) = start_child(&name, &proc, capsule.env.as_ref()) else {
                 continue;
@@ -187,7 +208,7 @@ fn deamon_run() -> Result<(), Error> {
             let entry = RunningProcess {
                 name: name.clone(),
                 status: Status::Running(child.id()),
-                config: proc,
+                config: proc.clone(),
                 child,
                 started: Instant::now(),
                 force_restart: false,
@@ -294,12 +315,16 @@ fn deamon_run() -> Result<(), Error> {
                             .set_error(Error::InternalError)
                             .log();
                     }
-                    CliMessage::Stop => {
+                    CliMessage::TareDown => {
                         for (_, proc) in table.iter_mut() {
                             proc.child.kill().ok();
-                            proc.child.wait().ok();
+                            proc.child.try_wait().ok();
                         }
-                        to_allocvec(&SupervisorResp::Ok)
+                        let resp = match clear_files(&capsule) {
+                            Ok(_) => SupervisorResp::Ok,
+                            Err(_) => SupervisorResp::Error(Error::InternalError), // todo return proper error
+                        };
+                        to_allocvec(&resp)
                             .map(|resp| socket.send_to(&resp, client_addr))
                             .set_error(Error::InternalError)
                             .log();
@@ -310,6 +335,13 @@ fn deamon_run() -> Result<(), Error> {
                             .map(|resp| socket.send_to(&resp, client_addr))
                             .set_error(Error::InternalError)
                             .log();
+                    }
+                    CliMessage::KillDeamon => {
+                        to_allocvec(&SupervisorResp::Ok)
+                            .map(|resp| socket.send_to(&resp, client_addr))
+                            .set_error(Error::InternalError)
+                            .log();
+                        return Ok(());
                     }
                 }
             }
@@ -463,8 +495,14 @@ fn cli_proc_kill_all() -> Result<(), Error> {
     return Ok(());
 }
 
-fn cli_deamon_stop() -> Result<(), Error> {
-    send_cli_cmd(CliMessage::Stop, |_| Ok(()))?;
+fn cli_deamon_tare_down() -> Result<(), Error> {
+    send_cli_cmd(CliMessage::TareDown, |_| Ok(()))?;
+    println!("Ok!");
+    return Ok(());
+}
+
+fn cli_deamon_kill() -> Result<(), Error> {
+    send_cli_cmd(CliMessage::TareDown, |_| Ok(()))?;
     println!("Ok!");
     return Ok(());
 }
@@ -500,17 +538,25 @@ fn cli_deamon_version() -> Result<(), Error> {
 
 #[derive(Debug, Subcommand)]
 enum Deamon {
+    /// Starts the supervisor
     Start,
-    Stop,
-    Clean,
+    /// Warning! this will remove all files, and stop all procesess and the supervisor
+    TareDown,
+    /// Returns the status
     Status,
+    /// Kills the suppervisor, use proc kill to kill a specific process
+    Kill,
 }
 
 #[derive(Debug, Subcommand)]
 enum Proc {
+    /// Kills a process
     Kill { name: String },
+    /// Restart a process
     Restart { name: String },
+    /// Kills all a processes keeps the suppervisor running
     KillAll,
+    /// Lists data about all the processes
     List,
 }
 
@@ -536,9 +582,9 @@ fn main() {
     match args {
         Args::Deamon(demon) => match demon {
             Deamon::Start => cli_deamon_start(),
-            Deamon::Stop => cli_deamon_stop(),
+            Deamon::TareDown => cli_deamon_tare_down(),
+            Deamon::Kill => cli_deamon_kill(),
             Deamon::Status => cli_deamon_status(),
-            Deamon::Clean => todo!(),
         },
         Args::Proc(proc) => match proc {
             Proc::Kill { name } => cli_proc_kill(name),

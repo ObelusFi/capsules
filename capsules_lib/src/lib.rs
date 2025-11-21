@@ -159,9 +159,10 @@ pub enum CliMessage {
     Kill { name: String },
     Restart { name: String },
     List,
-    Stop,
+    TareDown,
     KillAll,
     Status,
+    KillDeamon,
 }
 
 #[derive(Serialize, Deserialize)]
