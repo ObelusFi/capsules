@@ -27,17 +27,21 @@ fi
 echo "Bumping version: $CURRENT_VERSION → $NEW_VERSION"
 
 # Update Cargo.toml
-tmp=$(mktemp)
-sed -E "0,/version = \"[0-9]+\.[0-9]+\.[0-9]+\"/s/version = \"[0-9]+\.[0-9]+\.[0-9]+\"/version = \"$NEW_VERSION\"/" \
-  "$ROOT/Cargo.toml" > "$tmp"
-mv "$tmp" "$ROOT/Cargo.toml"
-
+tmp="$ROOT/tmp.toml"
+touch $tmp;
+awk -v new="$NEW_VERSION" '
+    !done && $0 ~ /version = "[0-9]+\.[0-9]+\.[0-9]+"/ {
+        sub(/version = "[0-9]+\.[0-9]+\.[0-9]+"/, "version = \"" new "\"")
+        done=1
+    }
+    { print }
+' "$ROOT/Cargo.toml" > "$tmp"
 TAG="v$NEW_VERSION"
 
 echo "Creating tag: $TAG"
-git -C "$ROOT" add Cargo.toml
-git -C "$ROOT" commit -m "chore(release): $TAG"
-git -C "$ROOT" tag "$TAG"
+git add .
+git commit -m "chore(release): $TAG"
+git tag "$TAG"
 
 # Generate changelog section
 echo "📝 Updating CHANGELOG.md..."
