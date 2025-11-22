@@ -27,22 +27,19 @@ fi
 echo "Bumping version: $CURRENT_VERSION → $NEW_VERSION"
 
 # Update Cargo.toml
-tmp="$ROOT/tmp.toml"
-touch $tmp;
+TEMP="$ROOT/Cargo.tmp"
+touch $TEMP;
 awk -v new="$NEW_VERSION" '
     !done && $0 ~ /version = "[0-9]+\.[0-9]+\.[0-9]+"/ {
         sub(/version = "[0-9]+\.[0-9]+\.[0-9]+"/, "version = \"" new "\"")
         done=1
     }
     { print }
-' "$ROOT/Cargo.toml" > "$tmp"
+' "$ROOT/Cargo.toml" > "$TEMP"
+mv $TEMP "$ROOT/Cargo.toml"
 TAG="v$NEW_VERSION"
-rm $tmp
 
-echo "Creating tag: $TAG"
-git add .
-git commit -m "chore(release): $TAG"
-git tag "$TAG"
+
 
 echo "📝 Updating CHANGELOG.md..."
 CHANGELOG="$ROOT/CHANGELOG.md"
@@ -71,26 +68,24 @@ PREV_TAG=$(git -C "$ROOT" describe --tags --abbrev=0 "$TAG^" 2>/dev/null || echo
 
   echo ""
 } > "$TEMP"
+RELEASE_MESSAGE=$(cat "$TEMP")
 
-echo "Pushing commit and tags..."
-git -C "$ROOT" push --tags
-
-echo "Creating GitHub release $TAG"
-# IMPORTANT: use TEMP, not CHANGELOG
-gh release create "$TAG" --notes-file "$TEMP"
-
-# Now update CHANGELOG by prepending TEMP
 cat "$CHANGELOG" >> "$TEMP"
 mv "$TEMP" "$CHANGELOG"
 
-git -C "$ROOT" add CHANGELOG.md
-git -C "$ROOT" commit --amend --no-edit
-git -C "$ROOT" push --force-with-lease
 
+echo "Pushing commit and tags..."
+git add .
+git commit -m "chore(release): $TAG"
+git tag "$TAG"
+git -C "$ROOT" push
+git -C "$ROOT" push --tags
+
+echo "Creating GitHub release $TAG"
+gh release create "$TAG" --notes "$RELEASE_MESSAGE"
 
 echo "Building runtimes and compiler..."
 "$ROOT/scripts/build_all.sh"
-
 
 echo "Uploading artifacts..."
 gh release upload "$TAG" "$ROOT/builds/"* --clobber
