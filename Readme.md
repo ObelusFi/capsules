@@ -84,16 +84,22 @@ whole workload with one command—no installers, no extra tooling.
 
 Grab the latest prebuilt Capsule binary:
 
+- For linux:
+
 ```bash
-curl -sSL https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/scripts/install_capsule_linux.sh | bash
+curl -sSL https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/scripts/install_capsule_linux.sh | bash
 ```
+
+- For mac:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/scripts/install_capsule_mac.sh | bash
 ```
 
+- For winows
+
 ```bash
-iwr https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/scripts/install_capsule_windows.sh | iex
+iwr https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/scripts/install_capsule_windows.sh | iex
 ```
 
 ## Capsule CLI Cheatsheet
@@ -101,7 +107,8 @@ iwr https://raw.githubusercontent.com/ObelusFi/capsules/refs/heads/master/script
 ```
 ./capsule daemon start        # boot supervisor & bundled processes
 ./capsule daemon status       # capsule + runtime versions
-./capsule daemon stop         # tear everything down
+./capsule daemon kill         # kills the daemon
+./capsule daemon teardown     # kills all processes and removes capsule files
 ./capsule proc list           # CPU, memory, IO, uptime, restarts
 ./capsule proc kill <name>    # terminate a named process
 ./capsule proc restart <name> # restart a process
