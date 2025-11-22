@@ -7,7 +7,7 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 
 ROOT="$(git rev-parse --show-toplevel)"
-git -C "ROOT" fetch --tags
+git -C $"ROOT" fetch --tags
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT_BRANCH" != "master" ]; then
