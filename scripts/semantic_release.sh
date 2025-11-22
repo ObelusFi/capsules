@@ -53,7 +53,7 @@ fi
 # Collect commits since last tag
 PREV_TAG=$(git -C "$ROOT" describe --tags --abbrev=0 "$TAG^" 2>/dev/null || echo "")
 
-# Write new section into TEMP
+
 {
   echo "## $TAG ($(date +%Y-%m-%d))"
   echo ""
