@@ -76,7 +76,6 @@ echo "Pushing commit and tags..."
 git -C "$ROOT" push --tags
 
 echo "Creating GitHub release $TAG"
-# IMPORTANT: use TEMP, not CHANGELOG
 gh release create "$TAG" --notes-file "$TEMP"
 
 # Now update CHANGELOG by prepending TEMP
