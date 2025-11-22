@@ -27,7 +27,6 @@ fi
 
 echo "Bumping version: $CURRENT_VERSION → $NEW_VERSION"
 
-# Update Cargo.toml
 TEMP="$ROOT/Cargo.tmp"
 touch $TEMP;
 awk -v new="$NEW_VERSION" '
