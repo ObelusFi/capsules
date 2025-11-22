@@ -166,7 +166,7 @@ dependencies = [
 
 [[package]]
 name = "capsules_compiler"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "capsules_lib",
  "clap",
@@ -180,7 +180,7 @@ dependencies = [
 
 [[package]]
 name = "capsules_lib"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "aes-gcm",
  "bytesize",
@@ -197,7 +197,7 @@ dependencies = [
 
 [[package]]
 name = "capsules_runtime"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "atty",
  "capsules_lib",
