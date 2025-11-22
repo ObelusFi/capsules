@@ -1,3 +1,23 @@
+## v0.4.0 (2025-11-21)
+
+Changes since v0.2.0...
+- chore: fix semantic release
+- chore: test
+- chore: more fixes
+- chore: ci test
+- chore: more release tests
+- chore(release): v0.3.0
+- chore: test script
+- chore: resolve
+- chore: test version deploy script
+- chore: more script fixes
+- fix: update kill/teardown for daemon and some small changes
+- chore: fix scripts
+- chore: set version
+- feat: add ascii art to commands
+- chore: remove temp and upate script
+- chore: fix scripts
+- chore(release): v0.2.0
 ## v0.3.0 (2025-11-21)
 
 First release. Listing all commits...
