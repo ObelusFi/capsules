@@ -51,7 +51,6 @@ if [ ! -f "$CHANGELOG" ]; then
   echo "" >> "$CHANGELOG"
 fi
 
-# Collect commits since last tag
 PREV_TAG=$(git tag --sort=-version:refname | head -n 1 || echo "")
 
 
